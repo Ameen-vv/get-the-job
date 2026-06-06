@@ -92,10 +92,10 @@ supabase db push
 ### 4. Set Environment Variables
 
 ```bash
-cp apps/web/.env.local.example apps/web/.env.local
+cp frontend/.env.local.example frontend/.env.local
 ```
 
-Edit `apps/web/.env.local` with your values:
+Edit `frontend/.env.local` with your values:
 
 ```env
 NEXT_PUBLIC_SUPABASE_URL=https://your-project.supabase.co
@@ -107,7 +107,7 @@ COLLECTOR_API_KEY=your-secret-api-key
 ### 5. Run the App
 
 ```bash
-cd apps/web
+cd frontend
 npm install
 npm run dev
 ```
@@ -195,7 +195,7 @@ Row Level Security is enabled on all tables. The `jobs` table is read-only for a
 ### Vercel
 
 1. Connect your GitHub repository to Vercel
-2. Set the root directory to `apps/web`
+2. Set the root directory to `frontend`
 3. Add environment variables in the Vercel dashboard
 4. Deploy
 

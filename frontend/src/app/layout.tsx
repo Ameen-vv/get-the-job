@@ -3,6 +3,7 @@ import { Geist } from "next/font/google";
 import "./globals.css";
 import { ThemeProvider } from "@/components/shared/theme-provider";
 import { Toaster } from "@/components/ui/sonner";
+import { SpeedInsights } from "@vercel/speed-insights/next";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -22,7 +23,9 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en" suppressHydrationWarning className="h-full overflow-hidden">
-      <body className={`${geistSans.variable} font-sans antialiased h-full overflow-hidden`}>
+      <body
+        className={`${geistSans.variable} font-sans antialiased h-full overflow-hidden`}
+      >
         <ThemeProvider
           attribute="class"
           defaultTheme="system"
@@ -32,6 +35,7 @@ export default function RootLayout({
           {children}
           <Toaster richColors position="top-right" />
         </ThemeProvider>
+        <SpeedInsights />
       </body>
     </html>
   );
