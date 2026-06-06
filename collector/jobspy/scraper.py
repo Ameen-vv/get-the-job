@@ -67,11 +67,17 @@ def _row_to_job(site: str, row: pd.Series, cfg: dict) -> dict | None:
         "external_id": _make_external_id(site, row),
         "title": title,
         "company": company,
-        "location": location or None,
-        "url": url,
         "source": site,
-        "posted_at": _to_iso(row.get("date_posted")),
+        "score": 0,
     }
+
+    if location:
+        job["location"] = location
+    if url:
+        job["url"] = url
+    iso = _to_iso(row.get("date_posted"))
+    if iso:
+        job["posted_at"] = iso
 
     job["score"] = score_job(job, cfg)
     return job
