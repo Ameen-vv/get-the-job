@@ -7,7 +7,7 @@ export const importJobSchema = z.object({
   location: z.string().optional(),
   url: z.string().url().optional(),
   source: z.string().min(1),
-  posted_at: z.string().datetime().optional(),
+  posted_at: z.string().datetime({ offset: true }).optional(),
 });
 
 export const importJobsSchema = z.array(importJobSchema);

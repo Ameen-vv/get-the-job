@@ -2,6 +2,9 @@
 .agents/
 .claude/
 
+# Collector
+collector/.env
+
 # Supabase CLI runtime
 supabase/.temp/
 supabase/.branches/
