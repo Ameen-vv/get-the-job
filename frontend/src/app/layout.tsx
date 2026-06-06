@@ -14,6 +14,10 @@ export const metadata: Metadata = {
   title: "GetTheJob — Track Your Job Applications",
   description:
     "Discover relevant jobs and track your application progress in one place.",
+  icons: {
+    icon: "/get-the-job-icon.png",
+    apple: "/get-the-job-icon.png",
+  },
 };
 
 export default function RootLayout({

@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import Image from "next/image";
 import { usePathname } from "next/navigation";
 import {
   LayoutDashboard,
@@ -11,6 +12,7 @@ import {
   ChevronLeft,
   ChevronRight,
 } from "lucide-react";
+
 import { useState } from "react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
@@ -62,13 +64,24 @@ export function Sidebar({ profile }: SidebarProps) {
       <aside
         className={cn(
           "flex flex-col h-full border-r bg-sidebar transition-all duration-300",
-          collapsed ? "w-16" : "w-64"
+          collapsed ? "w-16" : "w-64",
         )}
       >
         {/* Logo */}
-        <div className={cn("flex items-center gap-2 p-4 h-16", collapsed && "justify-center")}>
-          <div className="flex items-center justify-center w-8 h-8 rounded-lg bg-primary shrink-0">
-            <Briefcase className="w-4 h-4 text-primary-foreground" />
+        <div
+          className={cn(
+            "flex items-center gap-2 p-4 h-16",
+            collapsed && "justify-center",
+          )}
+        >
+          <div className="flex items-center justify-center rounded-lg bg-primary dark:bg-primary/20 shrink-0">
+            <Image
+              src="/get-the-job-icon.png"
+              alt="GetTheJob"
+              width={40}
+              height={40}
+              className="object-contain"
+            />
           </div>
           {!collapsed && (
             <span className="font-semibold text-base truncate">GetTheJob</span>
@@ -80,7 +93,8 @@ export function Sidebar({ profile }: SidebarProps) {
         {/* Navigation */}
         <nav className="flex-1 flex flex-col gap-1 p-2 mt-2">
           {navItems.map(({ href, icon: Icon, label }) => {
-            const isActive = pathname === href || pathname.startsWith(`${href}/`);
+            const isActive =
+              pathname === href || pathname.startsWith(`${href}/`);
 
             const button = (
               <Button
@@ -89,7 +103,7 @@ export function Sidebar({ profile }: SidebarProps) {
                 variant={isActive ? "secondary" : "ghost"}
                 className={cn(
                   "w-full justify-start gap-3 h-10",
-                  collapsed && "justify-center px-0"
+                  collapsed && "justify-center px-0",
                 )}
               >
                 <Link href={href}>
@@ -121,12 +135,16 @@ export function Sidebar({ profile }: SidebarProps) {
               <TooltipTrigger asChild>
                 <Avatar className="h-9 w-9 cursor-pointer">
                   <AvatarImage src={profile?.avatar_url ?? undefined} />
-                  <AvatarFallback className="text-xs">{initials}</AvatarFallback>
+                  <AvatarFallback className="text-xs">
+                    {initials}
+                  </AvatarFallback>
                 </Avatar>
               </TooltipTrigger>
               <TooltipContent side="right">
                 <p className="font-medium">{profile?.name ?? "User"}</p>
-                <p className="text-xs text-muted-foreground">{profile?.email}</p>
+                <p className="text-xs text-muted-foreground">
+                  {profile?.email}
+                </p>
               </TooltipContent>
             </Tooltip>
           ) : (
@@ -136,8 +154,12 @@ export function Sidebar({ profile }: SidebarProps) {
                 <AvatarFallback className="text-xs">{initials}</AvatarFallback>
               </Avatar>
               <div className="flex-1 min-w-0">
-                <p className="text-sm font-medium truncate">{profile?.name ?? "User"}</p>
-                <p className="text-xs text-muted-foreground truncate">{profile?.email}</p>
+                <p className="text-sm font-medium truncate">
+                  {profile?.name ?? "User"}
+                </p>
+                <p className="text-xs text-muted-foreground truncate">
+                  {profile?.email}
+                </p>
               </div>
             </div>
           )}
