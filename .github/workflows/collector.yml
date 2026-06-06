@@ -16,7 +16,7 @@ jobs:
         with:
           python-version: "3.11"
           cache: pip
-          cache-dependency-path: collector/requirements.txt
+          cache-dependency-path: collector/jobspy/requirements.txt
 
       - name: Install dependencies
         run: pip install -r collector/jobspy/requirements.txt
