@@ -28,12 +28,13 @@ export async function upsertJobs(jobs: ImportJobInput[]): Promise<ImportSummary>
         location: job.location ?? null,
         url: job.url ?? null,
         source: job.source,
+        score: job.score ?? 0,
         posted_at: job.posted_at ?? null,
       };
 
       const { error } = await supabase.from("jobs").upsert(jobInsert, {
         onConflict: "external_id",
-        ignoreDuplicates: true,
+        ignoreDuplicates: false,
       });
 
       if (error) {

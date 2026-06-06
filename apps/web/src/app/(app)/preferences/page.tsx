@@ -28,6 +28,14 @@ export default async function PreferencesPage() {
         preferred_keywords: Array.isArray(raw.preferred_keywords)
           ? (raw.preferred_keywords as string[])
           : [],
+        top_companies: Array.isArray(raw.top_companies)
+          ? (raw.top_companies as string[])
+          : [],
+        excluded_keywords: Array.isArray(raw.excluded_keywords)
+          ? (raw.excluded_keywords as string[])
+          : [],
+        min_score: typeof raw.min_score === "number" ? raw.min_score : 4,
+        max_job_age_hours: typeof raw.max_job_age_hours === "number" ? raw.max_job_age_hours : 72,
       }
     : null;
 

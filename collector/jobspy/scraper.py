@@ -5,9 +5,9 @@ from datetime import datetime, timezone
 import pandas as pd
 from jobspy import scrape_jobs
 
-from config import BATCH_SIZE, DELAY_SECONDS, HOURS_OLD, RESULTS_PER_SEARCH
+from config import BATCH_SIZE, DELAY_SECONDS, RESULTS_PER_SEARCH
 from poster import post_batch
-from scoring import is_worth_importing
+from scoring import score_job
 
 
 def _make_external_id(site: str, row: pd.Series) -> str:
@@ -39,7 +39,7 @@ def _to_iso(val) -> str | None:
     return None
 
 
-def _row_to_job(site: str, row: pd.Series) -> dict | None:
+def _row_to_job(site: str, row: pd.Series, cfg: dict) -> dict | None:
     title = str(row.get("title", "")).strip()
     company = str(row.get("company", "")).strip()
     url = str(row.get("job_url", "")).strip()
@@ -49,13 +49,21 @@ def _row_to_job(site: str, row: pd.Series) -> dict | None:
     if not url or url == "nan":
         return None
 
+    title_lower = title.lower()
+    if any(kw in title_lower for kw in cfg["excluded_keywords"]):
+        return None
+
+    company_lower = company.lower()
+    if not any(tc in company_lower for tc in cfg["top_companies"]):
+        return None
+
     location = str(row.get("location", "")).strip()
     if location == "nan":
         location = ""
     if row.get("is_remote") is True and not location:
         location = "Remote"
 
-    return {
+    job = {
         "external_id": _make_external_id(site, row),
         "title": title,
         "company": company,
@@ -65,8 +73,11 @@ def _row_to_job(site: str, row: pd.Series) -> dict | None:
         "posted_at": _to_iso(row.get("date_posted")),
     }
 
+    job["score"] = score_job(job, cfg)
+    return job
 
-def collect(site: str, title: str, location: str) -> tuple[int, int]:
+
+def collect(site: str, title: str, location: str, cfg: dict) -> tuple[int, int]:
     """Returns (imported, filtered_out) counts."""
     print(f"  [{site}] '{title}' @ {location}")
     try:
@@ -75,7 +86,8 @@ def collect(site: str, title: str, location: str) -> tuple[int, int]:
             search_term=title,
             location=location,
             results_wanted=RESULTS_PER_SEARCH,
-            hours_old=HOURS_OLD,
+            hours_old=cfg.get("hours_old", 72),
+            job_type="fulltime",
             country_indeed="India",
             verbose=0,
         )
@@ -89,8 +101,8 @@ def collect(site: str, title: str, location: str) -> tuple[int, int]:
 
     jobs, filtered = [], 0
     for _, row in df.iterrows():
-        job = _row_to_job(site, row)
-        if job is None or not is_worth_importing(job):
+        job = _row_to_job(site, row, cfg)
+        if job is None:
             filtered += 1
             continue
         jobs.append(job)

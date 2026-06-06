@@ -24,6 +24,10 @@ export async function updatePreferences(
         preferred_locations: parsed.data.preferred_locations,
         preferred_keywords: parsed.data.preferred_keywords,
         remote_only: parsed.data.remote_only,
+        top_companies: parsed.data.top_companies,
+        excluded_keywords: parsed.data.excluded_keywords,
+        min_score: parsed.data.min_score,
+        max_job_age_hours: parsed.data.max_job_age_hours,
       },
       { onConflict: "user_id" }
     );

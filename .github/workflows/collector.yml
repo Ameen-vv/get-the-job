@@ -2,8 +2,14 @@ name: Job Collector
 
 on:
   schedule:
-    - cron: "0 */6 * * *" # every 6 hours
-  workflow_dispatch: # allow manual trigger from GitHub UI
+    - cron: "30 2 * * *"  # 8:00 AM IST
+    - cron: "30 10 * * *" # 4:00 PM IST
+  workflow_dispatch:
+    inputs:
+      hours_old:
+        description: "Fetch jobs posted within this many hours"
+        default: "12"
+        required: false
 
 jobs:
   collect:
@@ -25,5 +31,8 @@ jobs:
         env:
           APP_URL: ${{ secrets.APP_URL }}
           COLLECTOR_API_KEY: ${{ secrets.COLLECTOR_API_KEY }}
+          SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+          HOURS_OLD_OVERRIDE: ${{ github.event.inputs.hours_old }}
         working-directory: collector/jobspy
         run: python main.py

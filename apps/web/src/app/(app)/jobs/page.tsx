@@ -12,9 +12,19 @@ export default async function JobsPage() {
 
   if (!user) redirect("/auth/login");
 
+  const { data: prefs } = await supabase
+    .from("preferences")
+    .select("min_score")
+    .eq("user_id", user.id)
+    .single();
+
+  const minScore = typeof prefs?.min_score === "number" ? prefs.min_score : 0;
+
   const { data: rawJobs } = await supabase
     .from("jobs")
     .select("*, user_jobs!left(id, status, notes, updated_at)")
+    .gte("score", minScore)
+    .order("score", { ascending: false })
     .order("created_at", { ascending: false });
 
   const jobs: JobRow[] = (rawJobs ?? []).map((rawJob) => {

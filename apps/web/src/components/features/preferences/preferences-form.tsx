@@ -7,6 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { Badge } from "@/components/ui/badge";
+import { Slider } from "@/components/ui/slider";
 import { Loader2, Plus, X } from "lucide-react";
 import { toast } from "sonner";
 import { updatePreferences } from "@/lib/actions/preferences.actions";
@@ -134,7 +135,22 @@ export function PreferencesForm({ userId, preferences }: PreferencesFormProps) {
   const [remoteOnly, setRemoteOnly] = useState(
     preferences?.remote_only ?? false
   );
+  const [topCompanies, setTopCompanies] = useState<string[]>(
+    preferences?.top_companies ?? []
+  );
+  const [excludedKeywords, setExcludedKeywords] = useState<string[]>(
+    preferences?.excluded_keywords ?? []
+  );
+  const [minScore, setMinScore] = useState(preferences?.min_score ?? 4);
+  const [maxJobAgeHours, setMaxJobAgeHours] = useState(preferences?.max_job_age_hours ?? 72);
   const [isPending, startTransition] = useTransition();
+
+  const AGE_OPTIONS = [
+    { label: "Last 24 hours", value: 24 },
+    { label: "Last 3 days", value: 72 },
+    { label: "Last week", value: 168 },
+    { label: "Last 2 weeks", value: 336 },
+  ];
 
   function handleSave() {
     startTransition(async () => {
@@ -143,6 +159,10 @@ export function PreferencesForm({ userId, preferences }: PreferencesFormProps) {
         preferred_locations: locations,
         preferred_keywords: keywords,
         remote_only: remoteOnly,
+        top_companies: topCompanies,
+        excluded_keywords: excludedKeywords,
+        min_score: minScore,
+        max_job_age_hours: maxJobAgeHours,
       });
 
       if (result.success) {
@@ -232,6 +252,82 @@ export function PreferencesForm({ userId, preferences }: PreferencesFormProps) {
               "Senior Engineer",
             ]}
           />
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>Collector Settings</CardTitle>
+          <CardDescription>
+            Controls what the job collector fetches and how it scores relevance
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-6">
+          <TagInput
+            label="Top Companies"
+            description="Only import jobs from these companies (leave empty to allow all)"
+            values={topCompanies}
+            onChange={setTopCompanies}
+            placeholder="e.g. Google, Swiggy, Atlassian"
+            suggestions={["Google", "Microsoft", "Amazon", "Swiggy", "Zomato", "Razorpay", "Atlassian", "Freshworks", "Zoho"]}
+          />
+
+          <TagInput
+            label="Excluded Keywords"
+            description="Drop jobs whose title contains any of these words"
+            values={excludedKeywords}
+            onChange={setExcludedKeywords}
+            placeholder="e.g. intern, manager, director"
+            suggestions={["intern", "internship", "fresher", "trainee", "manager", "director", "principal"]}
+          />
+
+          <div className="space-y-3">
+            <div>
+              <Label>Job Recency</Label>
+              <p className="text-sm text-muted-foreground mt-0.5">
+                Only fetch jobs posted within this time window
+              </p>
+            </div>
+            <div className="flex flex-wrap gap-2">
+              {AGE_OPTIONS.map((opt) => (
+                <button
+                  key={opt.value}
+                  type="button"
+                  onClick={() => setMaxJobAgeHours(opt.value)}
+                  className={`rounded-full border px-3 py-1 text-sm transition-colors ${
+                    maxJobAgeHours === opt.value
+                      ? "border-primary bg-primary text-primary-foreground"
+                      : "border-border text-muted-foreground hover:bg-muted hover:text-foreground"
+                  }`}
+                >
+                  {opt.label}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          <div className="space-y-3">
+            <div>
+              <Label>Minimum Relevance Score</Label>
+              <p className="text-sm text-muted-foreground mt-0.5">
+                Jobs scoring below this threshold are dropped — higher means stricter
+              </p>
+            </div>
+            <div className="flex items-center gap-4">
+              <Slider
+                min={1}
+                max={10}
+                step={1}
+                value={[minScore]}
+                onValueChange={([v]) => setMinScore(v)}
+                className="flex-1"
+              />
+              <span className="text-sm font-semibold w-6 text-center">{minScore}</span>
+            </div>
+            <p className="text-xs text-muted-foreground">
+              Score breakdown: title match (+1–3), location (+1–2), freshness (+1–2), top company (+2), has URL (+1)
+            </p>
+          </div>
         </CardContent>
       </Card>
 

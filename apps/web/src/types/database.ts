@@ -53,6 +53,10 @@ export interface Database {
           preferred_locations: Json;
           preferred_keywords: Json;
           remote_only: boolean;
+          top_companies: Json;
+          excluded_keywords: Json;
+          min_score: number;
+          max_job_age_hours: number;
           created_at: string;
           updated_at: string;
         };
@@ -63,6 +67,10 @@ export interface Database {
           preferred_locations?: Json;
           preferred_keywords?: Json;
           remote_only?: boolean;
+          top_companies?: Json;
+          excluded_keywords?: Json;
+          min_score?: number;
+          max_job_age_hours?: number;
           created_at?: string;
           updated_at?: string;
         };
@@ -73,6 +81,10 @@ export interface Database {
           preferred_locations?: Json;
           preferred_keywords?: Json;
           remote_only?: boolean;
+          top_companies?: Json;
+          excluded_keywords?: Json;
+          min_score?: number;
+          max_job_age_hours?: number;
           created_at?: string;
           updated_at?: string;
         };
@@ -88,6 +100,7 @@ export interface Database {
           location: string | null;
           url: string | null;
           source: string;
+          score: number;
           posted_at: string | null;
           created_at: string;
         };
@@ -100,6 +113,7 @@ export interface Database {
           location?: string | null;
           url?: string | null;
           source: string;
+          score?: number;
           posted_at?: string | null;
           created_at?: string;
         };
@@ -112,6 +126,7 @@ export interface Database {
           location?: string | null;
           url?: string | null;
           source?: string;
+          score?: number;
           posted_at?: string | null;
           created_at?: string;
         };
@@ -178,10 +193,16 @@ export interface Database {
 
 export type Profile = Database["public"]["Tables"]["profiles"]["Row"];
 export type PreferencesRow = Database["public"]["Tables"]["preferences"]["Row"];
-export type Preferences = Omit<PreferencesRow, "skills" | "preferred_locations" | "preferred_keywords"> & {
+export type Preferences = Omit<
+  PreferencesRow,
+  "skills" | "preferred_locations" | "preferred_keywords" | "top_companies" | "excluded_keywords"
+> & {
   skills: string[];
   preferred_locations: string[];
   preferred_keywords: string[];
+  top_companies: string[];
+  excluded_keywords: string[];
+  max_job_age_hours: number;
 };
 export type Job = Database["public"]["Tables"]["jobs"]["Row"];
 export type UserJobRow = Database["public"]["Tables"]["user_jobs"]["Row"];
