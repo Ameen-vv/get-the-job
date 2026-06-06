@@ -4,6 +4,9 @@
 
 # Collector
 collector/.env
+**/__pycache__/
+**/*.pyc
+**/*.pyo
 
 # Supabase CLI runtime
 supabase/.temp/

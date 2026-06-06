@@ -1,6 +1,6 @@
 import { clsx, type ClassValue } from "clsx";
 import { twMerge } from "tailwind-merge";
-import { format, formatDistanceToNow, parseISO } from "date-fns";
+import { format, formatDistanceToNow } from "date-fns";
 
 export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
@@ -9,7 +9,7 @@ export function cn(...inputs: ClassValue[]) {
 export function formatDate(date: string | null | undefined): string {
   if (!date) return "—";
   try {
-    return format(parseISO(date), "MMM d, yyyy");
+    return format(new Date(date), "MMM d, yyyy");
   } catch {
     return "—";
   }
@@ -18,7 +18,7 @@ export function formatDate(date: string | null | undefined): string {
 export function formatRelativeDate(date: string | null | undefined): string {
   if (!date) return "—";
   try {
-    return formatDistanceToNow(parseISO(date), { addSuffix: true });
+    return formatDistanceToNow(new Date(date), { addSuffix: true });
   } catch {
     return "—";
   }

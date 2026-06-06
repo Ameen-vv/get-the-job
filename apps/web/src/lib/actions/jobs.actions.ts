@@ -39,7 +39,6 @@ export async function updateJobStatus({
   }
 
   revalidatePath("/dashboard");
-  revalidatePath("/jobs");
   revalidatePath("/tracker");
 
   return { success: true, userJob: data as UserJob };
