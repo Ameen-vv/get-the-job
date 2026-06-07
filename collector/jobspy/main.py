@@ -15,7 +15,7 @@ for var in ("APP_URL", "COLLECTOR_API_KEY", "SUPABASE_URL", "SUPABASE_SERVICE_RO
         sys.exit(1)
 
 from config import SITES
-from db import fetch_collector_config
+from db import deactivate_old_jobs, fetch_collector_config
 from scraper import collect
 
 
@@ -39,6 +39,7 @@ def main() -> None:
                 total_imported += imported
         print()
 
+    deactivate_old_jobs()
     print(f"Done — {total_imported} new jobs imported.")
 
 

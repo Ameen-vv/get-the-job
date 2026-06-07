@@ -61,7 +61,8 @@ export async function getDashboardStats(userId: string) {
 
   const { count: total } = await supabase
     .from("jobs")
-    .select("*", { count: "exact", head: true });
+    .select("*", { count: "exact", head: true })
+    .eq("is_active", true);
 
   const { data: userJobCounts } = await supabase
     .from("user_jobs")

@@ -37,6 +37,14 @@ def _client():
     return create_client(url, key)
 
 
+def deactivate_old_jobs() -> None:
+    try:
+        _client().rpc("deactivate_old_jobs").execute()
+        print("[db] Old jobs deactivated")
+    except Exception as exc:
+        print(f"[db] Could not deactivate old jobs: {exc}")
+
+
 def _location_to_search(loc: str) -> str:
     l = loc.strip()
     if l.lower() == "remote":

@@ -23,6 +23,7 @@ export default async function JobsPage() {
   const { data: rawJobs } = await supabase
     .from("jobs")
     .select("*, user_jobs!left(id, status, notes, updated_at)")
+    .eq("is_active", true)
     .gte("score", minScore)
     .order("score", { ascending: false })
     .order("created_at", { ascending: false });

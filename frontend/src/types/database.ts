@@ -101,6 +101,7 @@ export interface Database {
           url: string | null;
           source: string;
           score: number;
+          is_active: boolean;
           posted_at: string | null;
           created_at: string;
         };
@@ -114,6 +115,7 @@ export interface Database {
           url?: string | null;
           source: string;
           score?: number;
+          is_active?: boolean;
           posted_at?: string | null;
           created_at?: string;
         };
@@ -127,6 +129,7 @@ export interface Database {
           url?: string | null;
           source?: string;
           score?: number;
+          is_active?: boolean;
           posted_at?: string | null;
           created_at?: string;
         };
