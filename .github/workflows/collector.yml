@@ -31,7 +31,7 @@ jobs:
         env:
           APP_URL: ${{ secrets.APP_URL }}
           COLLECTOR_API_KEY: ${{ secrets.COLLECTOR_API_KEY }}
-          SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
           SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
           HOURS_OLD_OVERRIDE: ${{ github.event.inputs.hours_old }}
         working-directory: collector/jobspy
