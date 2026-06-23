@@ -1,7 +1,13 @@
 "use client";
 
 import { useState, useTransition } from "react";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -56,7 +62,7 @@ function TagInput({
   }
 
   const unusedSuggestions = (suggestions ?? []).filter(
-    (s) => !values.includes(s)
+    (s) => !values.includes(s),
   );
 
   return (
@@ -107,7 +113,9 @@ function TagInput({
 
       {unusedSuggestions.length > 0 && (
         <div className="flex flex-wrap gap-1.5">
-          <span className="text-xs text-muted-foreground self-center">Suggestions:</span>
+          <span className="text-xs text-muted-foreground self-center">
+            Suggestions:
+          </span>
           {unusedSuggestions.map((s) => (
             <button
               key={s}
@@ -127,25 +135,29 @@ function TagInput({
 export function PreferencesForm({ userId, preferences }: PreferencesFormProps) {
   const [skills, setSkills] = useState<string[]>(preferences?.skills ?? []);
   const [locations, setLocations] = useState<string[]>(
-    preferences?.preferred_locations ?? []
+    preferences?.preferred_locations ?? [],
   );
   const [keywords, setKeywords] = useState<string[]>(
-    preferences?.preferred_keywords ?? []
+    preferences?.preferred_keywords ?? [],
   );
   const [remoteOnly, setRemoteOnly] = useState(
-    preferences?.remote_only ?? false
+    preferences?.remote_only ?? false,
   );
   const [topCompanies, setTopCompanies] = useState<string[]>(
-    preferences?.top_companies ?? []
+    preferences?.top_companies ?? [],
   );
   const [excludedKeywords, setExcludedKeywords] = useState<string[]>(
-    preferences?.excluded_keywords ?? []
+    preferences?.excluded_keywords ?? [],
   );
   const [minScore, setMinScore] = useState(preferences?.min_score ?? 4);
-  const [maxJobAgeHours, setMaxJobAgeHours] = useState(preferences?.max_job_age_hours ?? 72);
+  const [maxJobAgeHours, setMaxJobAgeHours] = useState(
+    preferences?.max_job_age_hours ?? 72,
+  );
   const [isPending, startTransition] = useTransition();
 
   const AGE_OPTIONS = [
+    { label: "Last 6 hours", value: 6 },
+    { label: "Last 12 hours", value: 12 },
     { label: "Last 24 hours", value: 24 },
     { label: "Last 3 days", value: 72 },
     { label: "Last week", value: 168 },
@@ -189,7 +201,16 @@ export function PreferencesForm({ userId, preferences }: PreferencesFormProps) {
             values={skills}
             onChange={setSkills}
             placeholder="e.g. React, TypeScript, Node.js"
-            suggestions={["React", "Next.js", "TypeScript", "Node.js", "Python", "AWS", "PostgreSQL", "Docker"]}
+            suggestions={[
+              "React",
+              "Next.js",
+              "TypeScript",
+              "Node.js",
+              "Python",
+              "AWS",
+              "PostgreSQL",
+              "Docker",
+            ]}
           />
         </CardContent>
       </Card>
@@ -208,7 +229,15 @@ export function PreferencesForm({ userId, preferences }: PreferencesFormProps) {
             values={locations}
             onChange={setLocations}
             placeholder="e.g. Remote, Bangalore"
-            suggestions={["Remote", "Bangalore", "Chennai", "Hyderabad", "Mumbai", "Pune", "Coimbatore"]}
+            suggestions={[
+              "Remote",
+              "Bangalore",
+              "Chennai",
+              "Hyderabad",
+              "Mumbai",
+              "Pune",
+              "Coimbatore",
+            ]}
           />
 
           <div className="flex items-center gap-3 pt-2">
@@ -232,9 +261,7 @@ export function PreferencesForm({ userId, preferences }: PreferencesFormProps) {
       <Card>
         <CardHeader>
           <CardTitle>Keywords</CardTitle>
-          <CardDescription>
-            Job title keywords you're targeting
-          </CardDescription>
+          <CardDescription>Job title keywords you're targeting</CardDescription>
         </CardHeader>
         <CardContent>
           <TagInput
@@ -269,7 +296,17 @@ export function PreferencesForm({ userId, preferences }: PreferencesFormProps) {
             values={topCompanies}
             onChange={setTopCompanies}
             placeholder="e.g. Google, Swiggy, Atlassian"
-            suggestions={["Google", "Microsoft", "Amazon", "Swiggy", "Zomato", "Razorpay", "Atlassian", "Freshworks", "Zoho"]}
+            suggestions={[
+              "Google",
+              "Microsoft",
+              "Amazon",
+              "Swiggy",
+              "Zomato",
+              "Razorpay",
+              "Atlassian",
+              "Freshworks",
+              "Zoho",
+            ]}
           />
 
           <TagInput
@@ -278,7 +315,15 @@ export function PreferencesForm({ userId, preferences }: PreferencesFormProps) {
             values={excludedKeywords}
             onChange={setExcludedKeywords}
             placeholder="e.g. intern, manager, director"
-            suggestions={["intern", "internship", "fresher", "trainee", "manager", "director", "principal"]}
+            suggestions={[
+              "intern",
+              "internship",
+              "fresher",
+              "trainee",
+              "manager",
+              "director",
+              "principal",
+            ]}
           />
 
           <div className="space-y-3">
@@ -310,7 +355,8 @@ export function PreferencesForm({ userId, preferences }: PreferencesFormProps) {
             <div>
               <Label>Minimum Relevance Score</Label>
               <p className="text-sm text-muted-foreground mt-0.5">
-                Jobs scoring below this threshold are dropped — higher means stricter
+                Jobs scoring below this threshold are dropped — higher means
+                stricter
               </p>
             </div>
             <div className="flex items-center gap-4">
@@ -322,10 +368,13 @@ export function PreferencesForm({ userId, preferences }: PreferencesFormProps) {
                 onValueChange={([v]) => setMinScore(v)}
                 className="flex-1"
               />
-              <span className="text-sm font-semibold w-6 text-center">{minScore}</span>
+              <span className="text-sm font-semibold w-6 text-center">
+                {minScore}
+              </span>
             </div>
             <p className="text-xs text-muted-foreground">
-              Score breakdown: title match (+1–3), location (+1–2), freshness (+1–2), top company (+2), has URL (+1)
+              Score breakdown: title match (+1–3), location (+1–2), freshness
+              (+1–2), top company (+2), has URL (+1)
             </p>
           </div>
         </CardContent>
