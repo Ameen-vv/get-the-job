@@ -76,6 +76,7 @@ const ALL_STATUSES = [
 const RECENCY_OPTIONS = [
   { value: "any", label: "Any time" },
   { value: "1d", label: "Today" },
+  { value: "2d", label: "Last 2 days" },
   { value: "3d", label: "Last 3 days" },
   { value: "7d", label: "Last week" },
   { value: "30d", label: "Last 30 days" },
@@ -83,14 +84,15 @@ const RECENCY_OPTIONS = [
 
 const SCORE_OPTIONS = [
   { value: "0", label: "Any score" },
-  { value: "60", label: "60+" },
-  { value: "70", label: "70+" },
-  { value: "80", label: "80+" },
-  { value: "90", label: "90+" },
+  { value: "6", label: "6+" },
+  { value: "7", label: "7+" },
+  { value: "8", label: "8+" },
+  { value: "9", label: "9+" },
 ] as const;
 
 const RECENCY_DAYS: Record<string, number> = {
   "1d": 1,
+  "2d": 2,
   "3d": 3,
   "7d": 7,
   "30d": 30,
@@ -347,8 +349,10 @@ export function JobsTable({ jobs: initialJobs, userId }: JobsTableProps) {
     }
     if (recencyFilter !== "any") {
       const cutoff = subDays(new Date(), RECENCY_DAYS[recencyFilter]);
-      result = result.filter(
-        (j) => j.posted_at && isAfter(new Date(j.posted_at), cutoff),
+      result = result.filter((j) =>
+        j.posted_at
+          ? isAfter(new Date(j.posted_at), cutoff)
+          : isAfter(new Date(j.created_at), cutoff),
       );
     }
     if (sourceFilter !== "all")
