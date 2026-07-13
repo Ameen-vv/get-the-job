@@ -225,7 +225,11 @@ export function JobsTable({
   const [searchInput, setSearchInput] = useState(filters.q);
   const [notesJob, setNotesJob] = useState<JobRow | null>(null);
   const [applyTarget, setApplyTarget] = useState<JobRow | null>(null);
-  const [, startTransition] = useTransition();
+  const [isNavPending, startNavTransition] = useTransition();
+  // Separate transition for the post-mutation router.refresh() — kept apart
+  // from isNavPending so status changes (Save/Apply/Not Interested) stay
+  // purely optimistic with no visible dimming, unlike filter navigation.
+  const [, startRefreshTransition] = useTransition();
 
   // Resync local optimistic state whenever fresh server props arrive
   // (filter/sort/page navigation, or a router.refresh() after a mutation).
@@ -251,7 +255,12 @@ export function JobsTable({
   function navigate(patch: Partial<JobsFilters>) {
     const next: JobsFilters = { ...filters, ...patch };
     const qs = buildFiltersQueryString(next);
-    router.replace(`${pathname}${qs ? `?${qs}` : ""}`, { scroll: false });
+    // Wrapped in a transition so React keeps showing the current jobs list
+    // (with isNavPending true) instead of unmounting to the route's
+    // loading.tsx skeleton while the new filtered page is fetched.
+    startNavTransition(() => {
+      router.replace(`${pathname}${qs ? `?${qs}` : ""}`, { scroll: false });
+    });
   }
 
   const hasActiveFilters =
@@ -304,26 +313,24 @@ export function JobsTable({
     commitStatusUpdate(jobId, newStatus);
   }
 
-  function commitStatusUpdate(jobId: string, newStatus: JobStatus) {
-    // Optimistic update — UI changes instantly
+  async function commitStatusUpdate(jobId: string, newStatus: JobStatus) {
+    // Optimistic update — UI changes instantly, no loading state at all
     applyOptimisticStatus(jobId, newStatus);
 
-    startTransition(async () => {
-      const result = await updateJobStatus({
-        jobId,
-        userId,
-        status: newStatus,
-      });
-      if (result.success) {
-        toast.success(`Job marked as ${JOB_STATUS_LABELS[newStatus]}`);
-        // Resync counts/pagination/sources from the server.
+    const result = await updateJobStatus({ jobId, userId, status: newStatus });
+    if (result.success) {
+      toast.success(`Job marked as ${JOB_STATUS_LABELS[newStatus]}`);
+      // Resync counts/pagination/sources from the server in the background —
+      // wrapped in its own transition just to avoid the loading.tsx flash,
+      // not surfaced as any visible pending state.
+      startRefreshTransition(() => {
         router.refresh();
-      } else {
-        // Revert to last known-good server state on failure
-        setJobs(initialJobs);
-        toast.error("Failed to update job status");
-      }
-    });
+      });
+    } else {
+      // Revert to last known-good server state on failure
+      setJobs(initialJobs);
+      toast.error("Failed to update job status");
+    }
   }
 
   const columns = buildColumns(
@@ -509,7 +516,12 @@ export function JobsTable({
 
         {/* Content + pagination */}
         <Card className="flex-1 overflow-hidden flex flex-col">
-          <div className="flex-1 overflow-auto">
+          <div
+            className={cn(
+              "flex-1 overflow-auto transition-opacity",
+              isNavPending && "opacity-50",
+            )}
+          >
             {isEmpty ? (
               <div className="h-64 flex items-center justify-center">
                 <EmptyState
@@ -582,7 +594,9 @@ export function JobsTable({
                 : j,
             ),
           );
-          router.refresh();
+          startRefreshTransition(() => {
+            router.refresh();
+          });
         }}
       />
 
