@@ -1,6 +1,6 @@
 import { createClient, createServiceClient } from "@/lib/supabase/server";
 import { generateJobHash } from "@/lib/utils";
-import type { ImportJobInput, ImportSummary, JobStatus } from "@/types";
+import type { ImportJobInput, ImportSummary, JobStatus, TrackedJob } from "@/types";
 import { importJobsSchema } from "@/lib/validations/jobs";
 import { subDays } from "date-fns";
 import {
@@ -8,6 +8,11 @@ import {
   RECENCY_DAYS,
   type JobsFilters,
 } from "@/lib/jobs-filters";
+import {
+  TRACKER_PAGE_SIZE,
+  TRACKER_RECENCY_DAYS,
+  type TrackerFilters,
+} from "@/lib/tracker-filters";
 import type { JobRow } from "@/components/features/jobs/jobs-shared";
 
 export async function upsertJobs(jobs: ImportJobInput[]): Promise<ImportSummary> {
@@ -169,4 +174,62 @@ export async function getJobsForUser(
   const totalCount = rows?.[0]?.total_count ?? 0;
 
   return { jobs, totalCount, sources };
+}
+
+/**
+ * Fetches one already-filtered, sorted, and paginated page of a user's
+ * tracked applications. Unlike getJobsForUser, this needs no RPC — user_jobs
+ * is the primary table here (already scoped by RLS to auth.uid()), and every
+ * user_jobs row is guaranteed a matching jobs row via foreign key, so a plain
+ * `job:jobs!inner(*)` embed is always safe (no untouched-job rows to lose).
+ */
+export async function getTrackedJobsForUser(
+  userId: string,
+  filters: TrackerFilters,
+): Promise<{ trackedJobs: TrackedJob[]; totalCount: number }> {
+  const supabase = await createClient();
+
+  const from = (filters.page - 1) * TRACKER_PAGE_SIZE;
+  const to = from + TRACKER_PAGE_SIZE - 1;
+
+  let query = supabase
+    .from("user_jobs")
+    .select("*, job:jobs!inner(*)", { count: "exact" })
+    .eq("user_id", userId);
+
+  if (filters.status !== "ALL") query = query.eq("status", filters.status);
+
+  if (filters.recency !== "any") {
+    const cutoff = subDays(
+      new Date(),
+      TRACKER_RECENCY_DAYS[filters.recency],
+    ).toISOString();
+    query = query.gte("updated_at", cutoff);
+  }
+
+  if (filters.q) {
+    // Strip chars that are structurally significant in PostgREST's .or() syntax.
+    const term = filters.q.replace(/[%,()]/g, " ").trim();
+    if (term) {
+      query = query.or(`title.ilike.%${term}%,company.ilike.%${term}%`, {
+        referencedTable: "job",
+      });
+    }
+  }
+
+  const ascending = filters.dir === "asc";
+  if (filters.sort === "job") {
+    query = query
+      .order("company", { ascending, referencedTable: "job" })
+      .order("title", { ascending, referencedTable: "job" });
+  } else {
+    query = query.order("updated_at", { ascending });
+  }
+
+  const { data, count } = await query.range(from, to);
+
+  return {
+    trackedJobs: (data ?? []) as unknown as TrackedJob[],
+    totalCount: count ?? 0,
+  };
 }

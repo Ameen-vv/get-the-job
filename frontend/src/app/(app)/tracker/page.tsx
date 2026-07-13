@@ -2,11 +2,14 @@ import { createClient } from "@/lib/supabase/server";
 import { redirect } from "next/navigation";
 import { Header } from "@/components/shared/header";
 import { TrackerTable } from "@/components/features/tracker/tracker-table";
-import type { UserJob, Job } from "@/types";
+import { getTrackedJobsForUser } from "@/lib/services/jobs.service";
+import { parseTrackerFilters } from "@/lib/tracker-filters";
 
-type TrackerRow = UserJob & { job: Job };
+interface TrackerPageProps {
+  searchParams: Promise<{ [key: string]: string | string[] | undefined }>;
+}
 
-export default async function TrackerPage() {
+export default async function TrackerPage({ searchParams }: TrackerPageProps) {
   const supabase = await createClient();
   const {
     data: { user },
@@ -14,13 +17,11 @@ export default async function TrackerPage() {
 
   if (!user) redirect("/auth/login");
 
-  const { data: rawJobs } = await supabase
-    .from("user_jobs")
-    .select("*, job:jobs(*)")
-    .eq("user_id", user.id)
-    .order("updated_at", { ascending: false });
-
-  const trackedJobs = (rawJobs ?? []) as unknown as TrackerRow[];
+  const filters = parseTrackerFilters(await searchParams);
+  const { trackedJobs, totalCount } = await getTrackedJobsForUser(
+    user.id,
+    filters,
+  );
 
   return (
     <div className="flex flex-col h-full overflow-hidden">
@@ -29,7 +30,12 @@ export default async function TrackerPage() {
         description="Track and manage your job applications"
       />
       <div className="flex-1 overflow-hidden p-6">
-        <TrackerTable trackedJobs={trackedJobs} userId={user.id} />
+        <TrackerTable
+          trackedJobs={trackedJobs}
+          userId={user.id}
+          totalCount={totalCount}
+          filters={filters}
+        />
       </div>
     </div>
   );
