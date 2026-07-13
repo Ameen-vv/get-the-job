@@ -189,10 +189,49 @@ export interface Database {
       };
     };
     Views: {
-      [_ in never]: never;
+      active_job_sources: {
+        Row: {
+          source: string;
+        };
+        Relationships: [];
+      };
     };
     Functions: {
-      [_ in never]: never;
+      get_jobs_for_user: {
+        Args: {
+          p_status?: string;
+          p_min_score?: number;
+          p_recency_cutoff?: string | null;
+          p_source?: string | null;
+          p_remote?: boolean;
+          p_search?: string | null;
+          p_sort?: string;
+          p_dir?: string;
+          p_limit?: number;
+          p_offset?: number;
+        };
+        Returns: {
+          id: string;
+          external_id: string;
+          job_hash: string;
+          title: string;
+          company: string;
+          location: string | null;
+          url: string | null;
+          source: string;
+          score: number;
+          is_active: boolean;
+          posted_at: string | null;
+          description: string | null;
+          match_reason: string | null;
+          created_at: string;
+          user_job_id: string | null;
+          user_job_status: JobStatus | null;
+          user_job_notes: string | null;
+          user_job_updated_at: string | null;
+          total_count: number;
+        }[];
+      };
     };
     Enums: {
       job_status: JobStatus;

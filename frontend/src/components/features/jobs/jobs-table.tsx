@@ -3,14 +3,10 @@
 import {
   useReactTable,
   getCoreRowModel,
-  getFilteredRowModel,
-  getPaginationRowModel,
-  getSortedRowModel,
   type ColumnDef,
-  type SortingState,
-  type PaginationState,
 } from "@tanstack/react-table";
-import { useState, useTransition, useMemo, useEffect } from "react";
+import { useState, useTransition, useEffect } from "react";
+import { useRouter, usePathname } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
@@ -42,7 +38,6 @@ import {
   List,
 } from "lucide-react";
 import { formatRelativeDate, JOB_STATUS_LABELS, cn } from "@/lib/utils";
-import { isAfter, subDays } from "date-fns";
 import type { JobStatus } from "@/types";
 import { updateJobStatus } from "@/lib/actions/jobs.actions";
 import { toast } from "sonner";
@@ -57,62 +52,39 @@ import {
 import { JobsCardGrid } from "./jobs-card-grid";
 import { JobsTableView } from "./jobs-table-view";
 import { JobNotesDialog } from "./job-notes-dialog";
+import {
+  ALL_STATUSES,
+  RECENCY_OPTIONS,
+  SCORE_OPTIONS,
+  PAGE_SIZE,
+  buildFiltersQueryString,
+  statusMatchesFilter,
+  type JobsFilters,
+  type StatusFilter,
+  type RecencyFilter,
+  type SortColumn,
+} from "@/lib/jobs-filters";
 
 // Re-export so job-notes-dialog.tsx import stays unchanged
 export type { JobRow };
-
-// ─── Constants ────────────────────────────────────────────────────────────────
-
-const ALL_STATUSES = [
-  "ALL",
-  "NEW",
-  "SAVED",
-  "APPLIED",
-  "INTERVIEW",
-  "REJECTED",
-  "OFFER",
-  "HIDDEN",
-] as const;
-
-const RECENCY_OPTIONS = [
-  { value: "any", label: "Any time" },
-  { value: "1d", label: "Today" },
-  { value: "2d", label: "Last 2 days" },
-  { value: "3d", label: "Last 3 days" },
-  { value: "7d", label: "Last week" },
-  { value: "30d", label: "Last 30 days" },
-] as const;
-
-const SCORE_OPTIONS = [
-  { value: "0", label: "Any score" },
-  { value: "6", label: "6+" },
-  { value: "7", label: "7+" },
-  { value: "8", label: "8+" },
-  { value: "9", label: "9+" },
-] as const;
-
-const RECENCY_DAYS: Record<string, number> = {
-  "1d": 1,
-  "2d": 2,
-  "3d": 3,
-  "7d": 7,
-  "30d": 30,
-};
 
 // ─── Column definitions ───────────────────────────────────────────────────────
 
 function buildColumns(
   onStatusUpdate: (id: string, status: JobStatus) => void,
   onNotes: (job: JobRow) => void,
+  sort: SortColumn,
+  dir: "asc" | "desc",
+  onSort: (column: SortColumn) => void,
 ): ColumnDef<JobRow>[] {
   return [
     {
       accessorKey: "score",
-      header: ({ column }) => (
+      header: () => (
         <SortButton
           label="Score"
-          sorted={column.getIsSorted()}
-          onToggle={() => column.toggleSorting(column.getIsSorted() === "asc")}
+          sorted={sort === "score" ? dir : false}
+          onToggle={() => onSort("score")}
         />
       ),
       cell: ({ row }) => <ScoreBadge score={row.getValue("score")} />,
@@ -120,11 +92,11 @@ function buildColumns(
     {
       id: "job",
       accessorFn: (row) => `${row.company} ${row.title}`,
-      header: ({ column }) => (
+      header: () => (
         <SortButton
           label="Job"
-          sorted={column.getIsSorted()}
-          onToggle={() => column.toggleSorting(column.getIsSorted() === "asc")}
+          sorted={sort === "job" ? dir : false}
+          onToggle={() => onSort("job")}
         />
       ),
       cell: ({ row }) => (
@@ -154,11 +126,11 @@ function buildColumns(
     },
     {
       accessorKey: "posted_at",
-      header: ({ column }) => (
+      header: () => (
         <SortButton
           label="Posted"
-          sorted={column.getIsSorted()}
-          onToggle={() => column.toggleSorting(column.getIsSorted() === "asc")}
+          sorted={sort === "posted" ? dir : false}
+          onToggle={() => onSort("posted")}
         />
       ),
       cell: ({ row }) => (
@@ -223,49 +195,78 @@ function buildColumns(
 interface JobsTableProps {
   jobs: JobRow[];
   userId: string;
+  totalCount: number;
+  sources: string[];
+  filters: JobsFilters;
 }
 
-export function JobsTable({ jobs: initialJobs, userId }: JobsTableProps) {
+export function JobsTable({
+  jobs: initialJobs,
+  userId,
+  totalCount,
+  sources,
+  filters,
+}: JobsTableProps) {
+  const router = useRouter();
+  const pathname = usePathname();
+
   const [jobs, setJobs] = useState(initialJobs);
-  const [viewMode, setViewMode] = useState<"cards" | "table">("cards");
-  const [sorting, setSorting] = useState<SortingState>([]);
-  const [globalFilter, setGlobalFilter] = useState("");
-  const [statusFilter, setStatusFilter] = useState<string>("ALL");
-  const [recencyFilter, setRecencyFilter] = useState<string>("any");
-  const [sourceFilter, setSourceFilter] = useState<string>("all");
-  const [scoreFilter, setScoreFilter] = useState<string>("0");
-  const [remoteOnly, setRemoteOnly] = useState(false);
+  const [searchInput, setSearchInput] = useState(filters.q);
   const [notesJob, setNotesJob] = useState<JobRow | null>(null);
   const [applyTarget, setApplyTarget] = useState<JobRow | null>(null);
   const [, startTransition] = useTransition();
-  const [pagination, setPagination] = useState<PaginationState>({
-    pageIndex: 0,
-    pageSize: 12,
-  });
 
-  const sources = useMemo(() => {
-    const seen = new Set<string>();
-    for (const j of jobs) if (j.source) seen.add(j.source);
-    return Array.from(seen).sort();
-  }, [jobs]);
+  // Resync local optimistic state whenever fresh server props arrive
+  // (filter/sort/page navigation, or a router.refresh() after a mutation).
+  useEffect(() => {
+    setJobs(initialJobs);
+  }, [initialJobs]);
+
+  // Keep the search box in sync with the URL (e.g. Clear filters, back/forward).
+  useEffect(() => {
+    setSearchInput(filters.q);
+  }, [filters.q]);
+
+  // Debounce search text before pushing it to the URL/server.
+  useEffect(() => {
+    if (searchInput === filters.q) return;
+    const timeout = setTimeout(() => {
+      navigate({ q: searchInput, page: 1 });
+    }, 400);
+    return () => clearTimeout(timeout);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [searchInput]);
+
+  function navigate(patch: Partial<JobsFilters>) {
+    const next: JobsFilters = { ...filters, ...patch };
+    const qs = buildFiltersQueryString(next);
+    router.replace(`${pathname}${qs ? `?${qs}` : ""}`, { scroll: false });
+  }
 
   const hasActiveFilters =
-    recencyFilter !== "any" ||
-    sourceFilter !== "all" ||
-    scoreFilter !== "0" ||
-    remoteOnly;
+    filters.recency !== "any" ||
+    filters.source !== "all" ||
+    filters.scoreFloor !== 0 ||
+    filters.remote;
 
   function clearFilters() {
-    setRecencyFilter("any");
-    setSourceFilter("all");
-    setScoreFilter("0");
-    setRemoteOnly(false);
-    setGlobalFilter("");
+    setSearchInput("");
+    navigate({
+      recency: "any",
+      source: "all",
+      scoreFloor: 0,
+      remote: false,
+      q: "",
+      page: 1,
+    });
   }
 
   function applyOptimisticStatus(jobId: string, newStatus: JobStatus) {
-    setJobs((prev) =>
-      prev.map((j) =>
+    setJobs((prev) => {
+      if (!statusMatchesFilter(newStatus, filters.status)) {
+        return prev.filter((j) => j.id !== jobId);
+      }
+      return prev.map((j) =>
         j.id === jobId
           ? {
               ...j,
@@ -277,8 +278,8 @@ export function JobsTable({ jobs: initialJobs, userId }: JobsTableProps) {
               },
             }
           : j,
-      ),
-    );
+      );
+    });
   }
 
   function handleStatusUpdate(jobId: string, newStatus: JobStatus) {
@@ -294,7 +295,6 @@ export function JobsTable({ jobs: initialJobs, userId }: JobsTableProps) {
 
   function commitStatusUpdate(jobId: string, newStatus: JobStatus) {
     // Optimistic update — UI changes instantly
-    const previous = jobs.find((j) => j.id === jobId);
     applyOptimisticStatus(jobId, newStatus);
 
     startTransition(async () => {
@@ -304,114 +304,41 @@ export function JobsTable({ jobs: initialJobs, userId }: JobsTableProps) {
         status: newStatus,
       });
       if (result.success) {
-        // Sync server-assigned fields (id, updated_at)
-        if (result.userJob) {
-          setJobs((prev) =>
-            prev.map((j) =>
-              j.id === jobId
-                ? {
-                    ...j,
-                    user_job: {
-                      id: result.userJob!.id,
-                      status: result.userJob!.status,
-                      notes: result.userJob!.notes,
-                      updated_at: result.userJob!.updated_at,
-                    },
-                  }
-                : j,
-            ),
-          );
-        }
         toast.success(`Job marked as ${JOB_STATUS_LABELS[newStatus]}`);
+        // Resync counts/pagination/sources from the server.
+        router.refresh();
       } else {
-        // Revert on failure
-        setJobs((prev) =>
-          prev.map((j) =>
-            j.id === jobId ? { ...j, user_job: previous?.user_job ?? null } : j,
-          ),
-        );
+        // Revert to last known-good server state on failure
+        setJobs(initialJobs);
         toast.error("Failed to update job status");
       }
     });
   }
 
-  const filteredJobs = useMemo(() => {
-    let result = jobs;
-
-    if (statusFilter !== "ALL") {
-      result =
-        statusFilter === "NEW"
-          ? result.filter((j) => !j.user_job || j.user_job.status === "NEW")
-          : result.filter((j) => j.user_job?.status === statusFilter);
-    }
-    if (recencyFilter !== "any") {
-      const cutoff = subDays(new Date(), RECENCY_DAYS[recencyFilter]);
-      result = result.filter((j) =>
-        j.posted_at
-          ? isAfter(new Date(j.posted_at), cutoff)
-          : isAfter(new Date(j.created_at), cutoff),
-      );
-    }
-    if (sourceFilter !== "all")
-      result = result.filter((j) => j.source === sourceFilter);
-    const minScore = parseInt(scoreFilter, 10);
-    if (minScore > 0) result = result.filter((j) => j.score >= minScore);
-    if (remoteOnly)
-      result = result.filter(
-        (j) => j.location?.toLowerCase().includes("remote") ?? false,
-      );
-
-    return result;
-  }, [
-    jobs,
-    statusFilter,
-    recencyFilter,
-    sourceFilter,
-    scoreFilter,
-    remoteOnly,
-  ]);
-
-  const columns = useMemo(
-    () => buildColumns(handleStatusUpdate, setNotesJob),
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    [],
+  const columns = buildColumns(
+    handleStatusUpdate,
+    setNotesJob,
+    filters.sort,
+    filters.dir,
+    (column) => {
+      if (filters.sort === column) {
+        navigate({ dir: filters.dir === "asc" ? "desc" : "asc", page: 1 });
+      } else {
+        navigate({ sort: column, dir: "asc", page: 1 });
+      }
+    },
   );
 
-  // Reset to page 1 when filters/search/view change — but not on plain
-  // data mutations (e.g. optimistic status updates), which would otherwise
-  // reset via autoResetPageIndex since `jobs` gets a new array reference.
-  useEffect(() => {
-    setPagination({
-      pageSize: viewMode === "cards" ? 12 : 20,
-      pageIndex: 0,
-    });
-  }, [
-    viewMode,
-    statusFilter,
-    recencyFilter,
-    sourceFilter,
-    scoreFilter,
-    remoteOnly,
-    globalFilter,
-  ]);
-
   const table = useReactTable({
-    data: filteredJobs,
+    data: jobs,
     columns,
-    state: { sorting, globalFilter, pagination },
-    onSortingChange: setSorting,
-    onGlobalFilterChange: setGlobalFilter,
-    onPaginationChange: setPagination,
     getCoreRowModel: getCoreRowModel(),
-    getSortedRowModel: getSortedRowModel(),
-    getFilteredRowModel: getFilteredRowModel(),
-    getPaginationRowModel: getPaginationRowModel(),
-    autoResetPageIndex: false,
   });
 
-  const totalFiltered = table.getFilteredRowModel().rows.length;
   const visibleRows = table.getRowModel().rows;
   const isEmpty = visibleRows.length === 0;
+  const pageSize = PAGE_SIZE[filters.view];
+  const totalPages = Math.max(1, Math.ceil(totalCount / pageSize));
 
   return (
     <>
@@ -421,10 +348,10 @@ export function JobsTable({ jobs: initialJobs, userId }: JobsTableProps) {
           {ALL_STATUSES.map((s) => (
             <button
               key={s}
-              onClick={() => setStatusFilter(s)}
+              onClick={() => navigate({ status: s as StatusFilter, page: 1 })}
               className={cn(
                 "px-3 py-1 rounded-full text-xs font-medium border transition-colors cursor-pointer",
-                statusFilter === s
+                filters.status === s
                   ? "bg-foreground text-background border-foreground"
                   : "border-border text-muted-foreground hover:text-foreground hover:border-foreground/40 bg-transparent",
               )}
@@ -441,16 +368,16 @@ export function JobsTable({ jobs: initialJobs, userId }: JobsTableProps) {
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
             <Input
               placeholder="Search by title, company, or location…"
-              value={globalFilter}
-              onChange={(e) => setGlobalFilter(e.target.value)}
+              value={searchInput}
+              onChange={(e) => setSearchInput(e.target.value)}
               className="pl-9 pr-9"
             />
-            {globalFilter && (
+            {searchInput && (
               <Button
                 variant="ghost"
                 size="icon"
                 className="absolute right-1 top-1/2 -translate-y-1/2 h-7 w-7"
-                onClick={() => setGlobalFilter("")}
+                onClick={() => setSearchInput("")}
               >
                 <X className="h-3.5 w-3.5" />
               </Button>
@@ -458,7 +385,12 @@ export function JobsTable({ jobs: initialJobs, userId }: JobsTableProps) {
           </div>
 
           {/* Recency */}
-          <Select value={recencyFilter} onValueChange={setRecencyFilter}>
+          <Select
+            value={filters.recency}
+            onValueChange={(v) =>
+              navigate({ recency: v as RecencyFilter, page: 1 })
+            }
+          >
             <SelectTrigger className="w-36 h-9 text-xs">
               <SelectValue />
             </SelectTrigger>
@@ -473,7 +405,10 @@ export function JobsTable({ jobs: initialJobs, userId }: JobsTableProps) {
 
           {/* Source — only shown when there are multiple */}
           {sources.length > 1 && (
-            <Select value={sourceFilter} onValueChange={setSourceFilter}>
+            <Select
+              value={filters.source}
+              onValueChange={(v) => navigate({ source: v, page: 1 })}
+            >
               <SelectTrigger className="w-36 h-9 text-xs">
                 <SelectValue placeholder="All sources" />
               </SelectTrigger>
@@ -491,7 +426,12 @@ export function JobsTable({ jobs: initialJobs, userId }: JobsTableProps) {
           )}
 
           {/* Min score */}
-          <Select value={scoreFilter} onValueChange={setScoreFilter}>
+          <Select
+            value={String(filters.scoreFloor)}
+            onValueChange={(v) =>
+              navigate({ scoreFloor: parseInt(v, 10), page: 1 })
+            }
+          >
             <SelectTrigger className="w-28 h-9 text-xs">
               <SelectValue />
             </SelectTrigger>
@@ -506,10 +446,10 @@ export function JobsTable({ jobs: initialJobs, userId }: JobsTableProps) {
 
           {/* Remote toggle */}
           <button
-            onClick={() => setRemoteOnly((v) => !v)}
+            onClick={() => navigate({ remote: !filters.remote, page: 1 })}
             className={cn(
               "inline-flex items-center gap-1.5 px-3 h-9 rounded-md border text-xs font-medium transition-colors cursor-pointer",
-              remoteOnly
+              filters.remote
                 ? "bg-green-50 text-green-700 border-green-300 dark:bg-green-950 dark:text-green-400 dark:border-green-800"
                 : "border-border text-muted-foreground hover:text-foreground hover:border-foreground/40 bg-transparent",
             )}
@@ -532,10 +472,10 @@ export function JobsTable({ jobs: initialJobs, userId }: JobsTableProps) {
           {/* View toggle */}
           <div className="ml-auto flex items-center border rounded-lg overflow-hidden h-9">
             <button
-              onClick={() => setViewMode("cards")}
+              onClick={() => navigate({ view: "cards", page: 1 })}
               className={cn(
                 "px-2.5 h-full flex items-center transition-colors",
-                viewMode === "cards"
+                filters.view === "cards"
                   ? "bg-muted text-foreground"
                   : "text-muted-foreground hover:text-foreground",
               )}
@@ -543,10 +483,10 @@ export function JobsTable({ jobs: initialJobs, userId }: JobsTableProps) {
               <LayoutGrid className="h-4 w-4" />
             </button>
             <button
-              onClick={() => setViewMode("table")}
+              onClick={() => navigate({ view: "table", page: 1 })}
               className={cn(
                 "px-2.5 h-full flex items-center border-l transition-colors",
-                viewMode === "table"
+                filters.view === "table"
                   ? "bg-muted text-foreground"
                   : "text-muted-foreground hover:text-foreground",
               )}
@@ -565,13 +505,13 @@ export function JobsTable({ jobs: initialJobs, userId }: JobsTableProps) {
                   icon={Briefcase}
                   title="No jobs found"
                   description={
-                    globalFilter || statusFilter !== "ALL" || hasActiveFilters
+                    filters.q || filters.status !== "ALL" || hasActiveFilters
                       ? "Try adjusting your search or filters."
                       : "Jobs will appear here once they are imported."
                   }
                 />
               </div>
-            ) : viewMode === "cards" ? (
+            ) : filters.view === "cards" ? (
               <JobsCardGrid
                 rows={visibleRows}
                 onStatusUpdate={handleStatusUpdate}
@@ -585,30 +525,29 @@ export function JobsTable({ jobs: initialJobs, userId }: JobsTableProps) {
           {/* Pagination footer */}
           <div className="flex items-center justify-between border-t px-4 py-2.5 shrink-0 bg-muted/20">
             <p className="text-xs text-muted-foreground">
-              {totalFiltered === 0
+              {totalCount === 0
                 ? "No results"
-                : `${totalFiltered} job${totalFiltered === 1 ? "" : "s"}`}
+                : `${totalCount} job${totalCount === 1 ? "" : "s"}`}
             </p>
             <div className="flex items-center gap-1.5">
               <Button
                 variant="outline"
                 size="sm"
                 className="h-7 px-2.5 text-xs"
-                onClick={() => table.previousPage()}
-                disabled={!table.getCanPreviousPage()}
+                onClick={() => navigate({ page: filters.page - 1 })}
+                disabled={filters.page <= 1}
               >
                 Previous
               </Button>
               <span className="text-xs text-muted-foreground tabular-nums px-1">
-                {table.getState().pagination.pageIndex + 1} /{" "}
-                {Math.max(1, table.getPageCount())}
+                {filters.page} / {totalPages}
               </span>
               <Button
                 variant="outline"
                 size="sm"
                 className="h-7 px-2.5 text-xs"
-                onClick={() => table.nextPage()}
-                disabled={!table.getCanNextPage()}
+                onClick={() => navigate({ page: filters.page + 1 })}
+                disabled={filters.page >= totalPages}
               >
                 Next
               </Button>
@@ -632,6 +571,7 @@ export function JobsTable({ jobs: initialJobs, userId }: JobsTableProps) {
                 : j,
             ),
           );
+          router.refresh();
         }}
       />
 

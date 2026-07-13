@@ -1,10 +1,15 @@
 import { createClient } from "@/lib/supabase/server";
 import { redirect } from "next/navigation";
 import { Header } from "@/components/shared/header";
-import { JobsTable, type JobRow } from "@/components/features/jobs/jobs-table";
-import type { Job, UserJob } from "@/types";
+import { JobsTable } from "@/components/features/jobs/jobs-table";
+import { getJobsForUser } from "@/lib/services/jobs.service";
+import { parseJobsFilters } from "@/lib/jobs-filters";
 
-export default async function JobsPage() {
+interface JobsPageProps {
+  searchParams: Promise<{ [key: string]: string | string[] | undefined }>;
+}
+
+export default async function JobsPage({ searchParams }: JobsPageProps) {
   const supabase = await createClient();
   const {
     data: { user },
@@ -20,24 +25,8 @@ export default async function JobsPage() {
 
   const minScore = typeof prefs?.min_score === "number" ? prefs.min_score : 0;
 
-  const { data: rawJobs } = await supabase
-    .from("jobs")
-    .select("*, user_jobs!left(id, status, notes, updated_at)")
-    .eq("is_active", true)
-    .gte("score", minScore)
-    .order("score", { ascending: false })
-    .order("created_at", { ascending: false });
-
-  const jobs: JobRow[] = (rawJobs ?? []).map((rawJob) => {
-    const { user_jobs, ...jobFields } = rawJob as Job & {
-      user_jobs: Array<Pick<UserJob, "id" | "status" | "notes" | "updated_at">> | null;
-    };
-    const userJobArray = Array.isArray(user_jobs) ? user_jobs : [];
-    return {
-      ...jobFields,
-      user_job: userJobArray[0] ?? null,
-    };
-  });
+  const filters = parseJobsFilters(await searchParams);
+  const { jobs, totalCount, sources } = await getJobsForUser(filters, minScore);
 
   return (
     <div className="flex flex-col h-full overflow-hidden">
@@ -46,7 +35,13 @@ export default async function JobsPage() {
         description="Browse and manage available positions"
       />
       <div className="flex-1 overflow-hidden p-6">
-        <JobsTable jobs={jobs} userId={user.id} />
+        <JobsTable
+          jobs={jobs}
+          userId={user.id}
+          totalCount={totalCount}
+          sources={sources}
+          filters={filters}
+        />
       </div>
     </div>
   );

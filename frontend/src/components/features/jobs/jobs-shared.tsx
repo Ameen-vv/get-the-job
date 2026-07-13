@@ -122,7 +122,7 @@ export function JobRowMenu({
           className="text-muted-foreground"
           onClick={() => onStatus(job.id, "HIDDEN")}
         >
-          Hide Job
+          Not Interested
         </DropdownMenuItem>
       </DropdownMenuContent>
     </DropdownMenu>
