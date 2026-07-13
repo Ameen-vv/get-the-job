@@ -6,16 +6,19 @@ import { StatusBadge } from "@/components/shared/status-badge";
 import { formatRelativeDate, JOB_STATUS_LABELS } from "@/lib/utils";
 import { Clock, ExternalLink, MapPin, Wifi } from "lucide-react";
 import type { JobStatus } from "@/types";
-import { ScoreBadge, LocationChip, JobRowMenu, type JobRow } from "./jobs-shared";
+import { ScoreBadge, JobRowMenu, type JobRow } from "./jobs-shared";
 
 interface JobsCardGridProps {
   rows: Row<JobRow>[];
-  isPending: boolean;
   onStatusUpdate: (jobId: string, status: JobStatus) => void;
   onNotes: (job: JobRow) => void;
 }
 
-export function JobsCardGrid({ rows, isPending, onStatusUpdate, onNotes }: JobsCardGridProps) {
+export function JobsCardGrid({
+  rows,
+  onStatusUpdate,
+  onNotes,
+}: JobsCardGridProps) {
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4 p-4">
       {rows.map((row) => {
@@ -37,7 +40,9 @@ export function JobsCardGrid({ rows, isPending, onStatusUpdate, onNotes }: JobsC
               <div className="flex items-center gap-2">
                 <ScoreBadge score={job.score} />
                 <div className="flex items-center gap-2 ml-auto">
-                  <span className="capitalize text-xs text-muted-foreground">{job.source}</span>
+                  <span className="capitalize text-xs text-muted-foreground">
+                    {job.source}
+                  </span>
                   {job.url && (
                     <a
                       href={job.url}
@@ -53,8 +58,12 @@ export function JobsCardGrid({ rows, isPending, onStatusUpdate, onNotes }: JobsC
 
               {/* Company + title */}
               <div>
-                <div className="font-semibold text-base leading-tight">{job.company}</div>
-                <div className="text-sm text-muted-foreground mt-1 leading-snug">{job.title}</div>
+                <div className="font-semibold text-base leading-tight">
+                  {job.company}
+                </div>
+                <div className="text-sm text-muted-foreground mt-1 leading-snug">
+                  {job.title}
+                </div>
               </div>
 
               {/* Location + posted */}
@@ -88,7 +97,6 @@ export function JobsCardGrid({ rows, isPending, onStatusUpdate, onNotes }: JobsC
                     size="sm"
                     className="h-7 px-2.5 text-xs"
                     onClick={() => onStatusUpdate(job.id, "SAVED")}
-                    disabled={isPending}
                   >
                     Save
                   </Button>
@@ -98,7 +106,6 @@ export function JobsCardGrid({ rows, isPending, onStatusUpdate, onNotes }: JobsC
                     size="sm"
                     className="h-7 px-2.5 text-xs"
                     onClick={() => onStatusUpdate(job.id, "APPLIED")}
-                    disabled={isPending}
                   >
                     Apply
                   </Button>
@@ -113,7 +120,6 @@ export function JobsCardGrid({ rows, isPending, onStatusUpdate, onNotes }: JobsC
                 job={job}
                 onStatus={onStatusUpdate}
                 onNotes={onNotes}
-                isPending={isPending}
               />
             </div>
           </div>

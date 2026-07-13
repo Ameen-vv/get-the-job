@@ -104,7 +104,6 @@ const RECENCY_DAYS: Record<string, number> = {
 function buildColumns(
   onStatusUpdate: (id: string, status: JobStatus) => void,
   onNotes: (job: JobRow) => void,
-  isPending: boolean,
 ): ColumnDef<JobRow>[] {
   return [
     {
@@ -198,7 +197,6 @@ function buildColumns(
                 size="sm"
                 className="h-7 px-2.5 text-xs font-medium"
                 onClick={() => onStatusUpdate(job.id, "SAVED")}
-                disabled={isPending}
               >
                 Save
               </Button>
@@ -208,17 +206,11 @@ function buildColumns(
                 size="sm"
                 className="h-7 px-2.5 text-xs font-medium"
                 onClick={() => onStatusUpdate(job.id, "APPLIED")}
-                disabled={isPending}
               >
                 Apply
               </Button>
             )}
-            <JobRowMenu
-              job={job}
-              onStatus={onStatusUpdate}
-              onNotes={onNotes}
-              isPending={isPending}
-            />
+            <JobRowMenu job={job} onStatus={onStatusUpdate} onNotes={onNotes} />
           </div>
         );
       },
@@ -245,7 +237,7 @@ export function JobsTable({ jobs: initialJobs, userId }: JobsTableProps) {
   const [remoteOnly, setRemoteOnly] = useState(false);
   const [notesJob, setNotesJob] = useState<JobRow | null>(null);
   const [applyTarget, setApplyTarget] = useState<JobRow | null>(null);
-  const [isPending, startTransition] = useTransition();
+  const [, startTransition] = useTransition();
   const [pagination, setPagination] = useState<PaginationState>({
     pageIndex: 0,
     pageSize: 12,
@@ -380,9 +372,9 @@ export function JobsTable({ jobs: initialJobs, userId }: JobsTableProps) {
   ]);
 
   const columns = useMemo(
-    () => buildColumns(handleStatusUpdate, setNotesJob, isPending),
+    () => buildColumns(handleStatusUpdate, setNotesJob),
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [isPending],
+    [],
   );
 
   // Reset to page 1 when filters/search/view change — but not on plain
@@ -582,7 +574,6 @@ export function JobsTable({ jobs: initialJobs, userId }: JobsTableProps) {
             ) : viewMode === "cards" ? (
               <JobsCardGrid
                 rows={visibleRows}
-                isPending={isPending}
                 onStatusUpdate={handleStatusUpdate}
                 onNotes={setNotesJob}
               />

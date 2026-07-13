@@ -88,17 +88,15 @@ export function JobRowMenu({
   job,
   onStatus,
   onNotes,
-  isPending,
 }: {
   job: JobRow;
   onStatus: (id: string, status: JobStatus) => void;
   onNotes: (job: JobRow) => void;
-  isPending: boolean;
 }) {
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
-        <Button variant="ghost" size="icon" className="h-7 w-7 shrink-0" disabled={isPending}>
+        <Button variant="ghost" size="icon" className="h-7 w-7 shrink-0">
           <MoreHorizontal className="h-3.5 w-3.5" />
           <span className="sr-only">More options</span>
         </Button>
