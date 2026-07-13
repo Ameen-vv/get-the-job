@@ -8,8 +8,9 @@ import {
   getSortedRowModel,
   type ColumnDef,
   type SortingState,
+  type PaginationState,
 } from "@tanstack/react-table";
-import { useState, useTransition, useMemo } from "react";
+import { useState, useTransition, useMemo, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
@@ -245,6 +246,10 @@ export function JobsTable({ jobs: initialJobs, userId }: JobsTableProps) {
   const [notesJob, setNotesJob] = useState<JobRow | null>(null);
   const [applyTarget, setApplyTarget] = useState<JobRow | null>(null);
   const [isPending, startTransition] = useTransition();
+  const [pagination, setPagination] = useState<PaginationState>({
+    pageIndex: 0,
+    pageSize: 12,
+  });
 
   const sources = useMemo(() => {
     const seen = new Set<string>();
@@ -380,17 +385,36 @@ export function JobsTable({ jobs: initialJobs, userId }: JobsTableProps) {
     [isPending],
   );
 
+  // Reset to page 1 when filters/search/view change — but not on plain
+  // data mutations (e.g. optimistic status updates), which would otherwise
+  // reset via autoResetPageIndex since `jobs` gets a new array reference.
+  useEffect(() => {
+    setPagination({
+      pageSize: viewMode === "cards" ? 12 : 20,
+      pageIndex: 0,
+    });
+  }, [
+    viewMode,
+    statusFilter,
+    recencyFilter,
+    sourceFilter,
+    scoreFilter,
+    remoteOnly,
+    globalFilter,
+  ]);
+
   const table = useReactTable({
     data: filteredJobs,
     columns,
-    state: { sorting, globalFilter },
+    state: { sorting, globalFilter, pagination },
     onSortingChange: setSorting,
     onGlobalFilterChange: setGlobalFilter,
+    onPaginationChange: setPagination,
     getCoreRowModel: getCoreRowModel(),
     getSortedRowModel: getSortedRowModel(),
     getFilteredRowModel: getFilteredRowModel(),
     getPaginationRowModel: getPaginationRowModel(),
-    initialState: { pagination: { pageSize: viewMode === "cards" ? 12 : 20 } },
+    autoResetPageIndex: false,
   });
 
   const totalFiltered = table.getFilteredRowModel().rows.length;
