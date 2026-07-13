@@ -9,6 +9,8 @@ export const importJobSchema = z.object({
   source: z.string().min(1),
   score: z.number().int().min(0).optional(),
   posted_at: z.string().datetime({ offset: true }).optional(),
+  description: z.string().optional(),
+  match_reason: z.string().optional(),
 });
 
 export const importJobsSchema = z.array(importJobSchema);

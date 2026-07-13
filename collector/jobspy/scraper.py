@@ -5,7 +5,8 @@ from datetime import datetime, timezone
 import pandas as pd
 from jobspy import scrape_jobs
 
-from config import BATCH_SIZE, DELAY_SECONDS, RESULTS_PER_SEARCH
+from ai_match import match_jobs
+from config import AI_MATCH_DESC_CHARS, BATCH_SIZE, DELAY_SECONDS, RESULTS_PER_SEARCH
 from poster import post_batch
 from scoring import score_job
 
@@ -53,10 +54,6 @@ def _row_to_job(site: str, row: pd.Series, cfg: dict) -> dict | None:
     if any(kw in title_lower for kw in cfg["excluded_keywords"]):
         return None
 
-    company_lower = company.lower()
-    if not any(tc in company_lower for tc in cfg["top_companies"]):
-        return None
-
     location = str(row.get("location", "")).strip()
     if location == "nan":
         location = ""
@@ -79,6 +76,10 @@ def _row_to_job(site: str, row: pd.Series, cfg: dict) -> dict | None:
     if iso:
         job["posted_at"] = iso
 
+    description = str(row.get("description", "")).strip()
+    if description and description != "nan":
+        job["description"] = description[:AI_MATCH_DESC_CHARS]
+
     job["score"] = score_job(job, cfg)
     return job
 
@@ -95,6 +96,8 @@ def collect(site: str, title: str, location: str, cfg: dict) -> tuple[int, int]:
             hours_old=cfg.get("hours_old", 72),
             job_type="fulltime",
             country_indeed="India",
+            linkedin_fetch_description=True,
+            description_format="markdown",
             verbose=0,
         )
     except Exception as exc:
@@ -116,6 +119,15 @@ def collect(site: str, title: str, location: str, cfg: dict) -> tuple[int, int]:
     if not jobs:
         print(f"    all {filtered} jobs filtered out")
         return 0, filtered
+
+    before_ai = len(jobs)
+    jobs = match_jobs(jobs, cfg["profile"])
+    if len(jobs) != before_ai:
+        print(f"    ai: kept {len(jobs)}/{before_ai} after relevance match")
+
+    if not jobs:
+        print(f"    all remaining jobs filtered out by ai match")
+        return 0, filtered + before_ai
 
     imported = 0
     for i in range(0, len(jobs), BATCH_SIZE):

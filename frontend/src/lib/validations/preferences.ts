@@ -9,6 +9,7 @@ export const preferencesSchema = z.object({
   excluded_keywords: z.array(z.string().min(1)).default([]),
   min_score: z.number().int().min(1).max(10).default(4),
   max_job_age_hours: z.number().int().positive().default(72),
+  resume_text: z.string().max(8000).optional().default(""),
 });
 
 export type PreferencesInput = z.infer<typeof preferencesSchema>;

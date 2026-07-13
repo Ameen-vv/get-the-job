@@ -12,5 +12,5 @@ as $$
   update public.jobs
   set is_active = false
   where is_active = true
-    and created_at < now() - interval '3 days';
+    and coalesce(posted_at, created_at) < now() - interval '3 days';
 $$;

@@ -28,6 +28,7 @@ export async function updatePreferences(
         excluded_keywords: parsed.data.excluded_keywords,
         min_score: parsed.data.min_score,
         max_job_age_hours: parsed.data.max_job_age_hours,
+        resume_text: parsed.data.resume_text,
       },
       { onConflict: "user_id" }
     );

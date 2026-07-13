@@ -23,6 +23,11 @@ MULTI-USER LIMITATIONS (acceptable for single-user, revisit when scaling):
 
 5. TOP COMPANIES whitelist — union is intentionally correct here: import jobs
    from any company any user wants. No issue.
+
+6. RESUME TEXT (AI matching profile) — resumes from all users are concatenated
+   and sent to the AI matcher together, so a job only needs to look relevant
+   to *one* user's resume to pass. Fix: run AI matching per-user instead of
+   once per collector pass.
 """
 
 import os
@@ -63,7 +68,7 @@ def fetch_collector_config() -> dict:
             .table("preferences")
             .select(
                 "preferred_keywords, preferred_locations, remote_only, skills, "
-                "top_companies, excluded_keywords, max_job_age_hours"
+                "top_companies, excluded_keywords, max_job_age_hours, resume_text"
             )
             .execute()
         )
@@ -84,6 +89,7 @@ def fetch_collector_config() -> dict:
     top_companies: set[str] = set()
     excluded_keywords: set[str] = set()
     max_ages: list[int] = []
+    resume_texts: list[str] = []
 
     for row in rows:
         for kw in row.get("preferred_keywords") or []:
@@ -119,6 +125,10 @@ def fetch_collector_config() -> dict:
         if isinstance(age, int):
             max_ages.append(age)
 
+        resume_text = row.get("resume_text")
+        if resume_text and resume_text.strip():
+            resume_texts.append(resume_text.strip())
+
     if not titles:
         print("[db] No job title keywords set in preferences. Add keywords in the app first.")
         sys.exit(1)
@@ -136,4 +146,12 @@ def fetch_collector_config() -> dict:
         "top_companies": top_companies,
         "excluded_keywords": excluded_keywords,
         "hours_old": min(max_ages) if max_ages else 72,
+        "profile": {
+            # Same "acceptable for single-user" caveat as the union fields
+            # above — for multiple users this concatenates all resumes.
+            "resume_text": "\n\n---\n\n".join(resume_texts),
+            "skills": sorted(stack_keywords),
+            "preferred_keywords": sorted(titles),
+            "excluded_keywords": sorted(excluded_keywords),
+        },
     }

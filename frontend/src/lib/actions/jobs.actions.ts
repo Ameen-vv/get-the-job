@@ -28,7 +28,7 @@ export async function updateJobStatus({
     .from("user_jobs")
     .upsert(
       { user_id: userId, job_id: jobId, status },
-      { onConflict: "user_id,job_id" }
+      { onConflict: "user_id,job_id" },
     )
     .select()
     .single();
@@ -38,8 +38,8 @@ export async function updateJobStatus({
     return { success: false };
   }
 
-  revalidatePath("/dashboard");
-  revalidatePath("/tracker");
+  // revalidatePath("/dashboard");
+  // revalidatePath("/tracker");
 
   return { success: true, userJob: data as UserJob };
 }
@@ -55,7 +55,7 @@ export async function updateJobNotes({
     .from("user_jobs")
     .upsert(
       { user_id: userId, job_id: jobId, notes, status: "SAVED" as JobStatus },
-      { onConflict: "user_id,job_id", ignoreDuplicates: false }
+      { onConflict: "user_id,job_id", ignoreDuplicates: false },
     );
 
   if (error) {
@@ -70,7 +70,7 @@ export async function updateJobNotes({
 
 export async function bulkUpdateJobStatus(
   userJobIds: string[],
-  status: JobStatus
+  status: JobStatus,
 ): Promise<{ success: boolean }> {
   const supabase = await createClient();
 

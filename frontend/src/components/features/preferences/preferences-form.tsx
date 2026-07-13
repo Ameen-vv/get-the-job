@@ -14,6 +14,7 @@ import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { Badge } from "@/components/ui/badge";
 import { Slider } from "@/components/ui/slider";
+import { Textarea } from "@/components/ui/textarea";
 import { Loader2, Plus, X } from "lucide-react";
 import { toast } from "sonner";
 import { updatePreferences } from "@/lib/actions/preferences.actions";
@@ -153,6 +154,9 @@ export function PreferencesForm({ userId, preferences }: PreferencesFormProps) {
   const [maxJobAgeHours, setMaxJobAgeHours] = useState(
     preferences?.max_job_age_hours ?? 72,
   );
+  const [resumeText, setResumeText] = useState(
+    preferences?.resume_text ?? "",
+  );
   const [isPending, startTransition] = useTransition();
 
   const AGE_OPTIONS = [
@@ -175,6 +179,7 @@ export function PreferencesForm({ userId, preferences }: PreferencesFormProps) {
         excluded_keywords: excludedKeywords,
         min_score: minScore,
         max_job_age_hours: maxJobAgeHours,
+        resume_text: resumeText,
       });
 
       if (result.success) {
@@ -284,6 +289,26 @@ export function PreferencesForm({ userId, preferences }: PreferencesFormProps) {
 
       <Card>
         <CardHeader>
+          <CardTitle>Resume / Bio</CardTitle>
+          <CardDescription>
+            Paste a summary of your resume — the AI relevance matcher uses
+            this alongside your skills and keywords to judge whether a job
+            description actually fits you
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <Textarea
+            value={resumeText}
+            onChange={(e) => setResumeText(e.target.value)}
+            placeholder="e.g. 4 years experience as a frontend engineer working with React, TypeScript, and Next.js. Previously built..."
+            rows={8}
+            className="resize-y"
+          />
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
           <CardTitle>Collector Settings</CardTitle>
           <CardDescription>
             Controls what the job collector fetches and how it scores relevance
@@ -292,7 +317,7 @@ export function PreferencesForm({ userId, preferences }: PreferencesFormProps) {
         <CardContent className="space-y-6">
           <TagInput
             label="Top Companies"
-            description="Only import jobs from these companies (leave empty to allow all)"
+            description="Jobs from these companies get a score bonus (does not exclude other companies)"
             values={topCompanies}
             onChange={setTopCompanies}
             placeholder="e.g. Google, Swiggy, Atlassian"
@@ -374,7 +399,9 @@ export function PreferencesForm({ userId, preferences }: PreferencesFormProps) {
             </div>
             <p className="text-xs text-muted-foreground">
               Score breakdown: title match (+1–3), location (+1–2), freshness
-              (+1–2), top company (+2), has URL (+1)
+              (+1–2), top company (+2), has URL (+1). Jobs also have to pass
+              an AI relevance check against your resume/skills before they're
+              imported at all.
             </p>
           </div>
         </CardContent>

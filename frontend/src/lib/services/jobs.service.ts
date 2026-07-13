@@ -30,6 +30,8 @@ export async function upsertJobs(jobs: ImportJobInput[]): Promise<ImportSummary>
         source: job.source,
         score: job.score ?? 0,
         posted_at: job.posted_at ?? null,
+        description: job.description ?? null,
+        match_reason: job.match_reason ?? null,
       };
 
       const { error } = await supabase.from("jobs").upsert(jobInsert, {

@@ -57,6 +57,7 @@ export interface Database {
           excluded_keywords: Json;
           min_score: number;
           max_job_age_hours: number;
+          resume_text: string | null;
           created_at: string;
           updated_at: string;
         };
@@ -71,6 +72,7 @@ export interface Database {
           excluded_keywords?: Json;
           min_score?: number;
           max_job_age_hours?: number;
+          resume_text?: string | null;
           created_at?: string;
           updated_at?: string;
         };
@@ -85,6 +87,7 @@ export interface Database {
           excluded_keywords?: Json;
           min_score?: number;
           max_job_age_hours?: number;
+          resume_text?: string | null;
           created_at?: string;
           updated_at?: string;
         };
@@ -103,6 +106,8 @@ export interface Database {
           score: number;
           is_active: boolean;
           posted_at: string | null;
+          description: string | null;
+          match_reason: string | null;
           created_at: string;
         };
         Insert: {
@@ -117,6 +122,8 @@ export interface Database {
           score?: number;
           is_active?: boolean;
           posted_at?: string | null;
+          description?: string | null;
+          match_reason?: string | null;
           created_at?: string;
         };
         Update: {
@@ -131,6 +138,8 @@ export interface Database {
           score?: number;
           is_active?: boolean;
           posted_at?: string | null;
+          description?: string | null;
+          match_reason?: string | null;
           created_at?: string;
         };
         Relationships: [];
