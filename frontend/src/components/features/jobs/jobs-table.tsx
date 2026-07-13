@@ -161,6 +161,7 @@ function buildColumns(
         const isApplied =
           status === "APPLIED" || status === "INTERVIEW" || status === "OFFER";
         const isSaved = status === "SAVED";
+        const isHidden = status === "HIDDEN";
         return (
           <div className="flex items-center gap-1 justify-end">
             {!isSaved && !isApplied && (
@@ -180,6 +181,16 @@ function buildColumns(
                 onClick={() => onStatusUpdate(job.id, "APPLIED")}
               >
                 Apply
+              </Button>
+            )}
+            {!isHidden && (
+              <Button
+                variant="ghost"
+                size="sm"
+                className="h-7 px-2.5 text-xs font-medium text-muted-foreground"
+                onClick={() => onStatusUpdate(job.id, "HIDDEN")}
+              >
+                Not Interested
               </Button>
             )}
             <JobRowMenu job={job} onStatus={onStatusUpdate} onNotes={onNotes} />
@@ -603,6 +614,16 @@ export function JobsTable({
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
+            <Button
+              variant="ghost"
+              className="text-muted-foreground sm:mr-auto"
+              onClick={() => {
+                if (applyTarget) commitStatusUpdate(applyTarget.id, "HIDDEN");
+                setApplyTarget(null);
+              }}
+            >
+              Not Interested
+            </Button>
             <AlertDialogCancel onClick={() => setApplyTarget(null)}>
               Cancel
             </AlertDialogCancel>

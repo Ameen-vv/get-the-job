@@ -27,6 +27,7 @@ export function JobsCardGrid({
         const isApplied =
           status === "APPLIED" || status === "INTERVIEW" || status === "OFFER";
         const isSaved = status === "SAVED";
+        const isHidden = status === "HIDDEN";
         const isRemote = job.location?.toLowerCase().includes("remote");
 
         return (
@@ -114,6 +115,16 @@ export function JobsCardGrid({
                   <span className="text-xs text-muted-foreground self-center">
                     {JOB_STATUS_LABELS[status!]}
                   </span>
+                )}
+                {!isHidden && (
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="h-7 px-2.5 text-xs text-muted-foreground"
+                    onClick={() => onStatusUpdate(job.id, "HIDDEN")}
+                  >
+                    Not Interested
+                  </Button>
                 )}
               </div>
               <JobRowMenu
