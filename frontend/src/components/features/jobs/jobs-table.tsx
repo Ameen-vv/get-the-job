@@ -51,6 +51,7 @@ import {
 } from "./jobs-shared";
 import { JobsCardGrid } from "./jobs-card-grid";
 import { JobsTableView } from "./jobs-table-view";
+import { JobsCardGridSkeleton, JobsTableViewSkeleton } from "./jobs-skeleton";
 import { JobNotesDialog } from "./job-notes-dialog";
 import {
   ALL_STATUSES,
@@ -516,13 +517,14 @@ export function JobsTable({
 
         {/* Content + pagination */}
         <Card className="flex-1 overflow-hidden flex flex-col">
-          <div
-            className={cn(
-              "flex-1 overflow-auto transition-opacity",
-              isNavPending && "opacity-50",
-            )}
-          >
-            {isEmpty ? (
+          <div className="flex-1 overflow-auto">
+            {isNavPending ? (
+              filters.view === "cards" ? (
+                <JobsCardGridSkeleton count={pageSize} />
+              ) : (
+                <JobsTableViewSkeleton count={pageSize} />
+              )
+            ) : isEmpty ? (
               <div className="h-64 flex items-center justify-center">
                 <EmptyState
                   icon={Briefcase}
