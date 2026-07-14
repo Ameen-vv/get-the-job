@@ -39,7 +39,7 @@ create or replace function public.get_jobs_for_user(
   p_source text default null,
   p_remote boolean default false,
   p_search text default null,
-  p_sort text default 'score',
+  p_sort text default 'created',
   p_dir text default 'desc',
   p_limit integer default 12,
   p_offset integer default 0
@@ -103,6 +103,8 @@ as $$
     case when p_sort = 'job' and p_dir = 'desc' then j.title end desc,
     case when p_sort = 'posted' and p_dir = 'asc' then j.posted_at end asc nulls last,
     case when p_sort = 'posted' and p_dir = 'desc' then j.posted_at end desc nulls last,
+    case when p_sort = 'created' and p_dir = 'asc' then j.created_at end asc,
+    case when p_sort = 'created' and p_dir = 'desc' then j.created_at end desc,
     j.created_at desc
   limit p_limit
   offset p_offset;

@@ -42,8 +42,25 @@ export const SCORE_OPTIONS = [
   { value: "9", label: "9+" },
 ] as const;
 
-export const SORT_COLUMNS = ["score", "job", "posted"] as const;
+export const SORT_COLUMNS = ["score", "job", "posted", "created"] as const;
 export type SortColumn = (typeof SORT_COLUMNS)[number];
+
+/** Combined sort+direction options for the "Sort by" dropdown (used in both card and table views). */
+export const SORT_OPTIONS = [
+  { value: "created-desc", label: "Recently Added", sort: "created", dir: "desc" },
+  { value: "created-asc", label: "Oldest Added", sort: "created", dir: "asc" },
+  { value: "posted-desc", label: "Newest Posted", sort: "posted", dir: "desc" },
+  { value: "posted-asc", label: "Oldest Posted", sort: "posted", dir: "asc" },
+  { value: "score-desc", label: "Highest Score", sort: "score", dir: "desc" },
+  { value: "score-asc", label: "Lowest Score", sort: "score", dir: "asc" },
+  { value: "job-asc", label: "Company A–Z", sort: "job", dir: "asc" },
+  { value: "job-desc", label: "Company Z–A", sort: "job", dir: "desc" },
+] as const satisfies ReadonlyArray<{
+  value: string;
+  label: string;
+  sort: SortColumn;
+  dir: "asc" | "desc";
+}>;
 
 export const VIEW_MODES = ["cards", "table"] as const;
 export type ViewMode = (typeof VIEW_MODES)[number];
@@ -70,7 +87,7 @@ export const DEFAULT_FILTERS: JobsFilters = {
   scoreFloor: 0,
   remote: false,
   q: "",
-  sort: "score",
+  sort: "created",
   dir: "desc",
   view: "cards",
   page: 1,

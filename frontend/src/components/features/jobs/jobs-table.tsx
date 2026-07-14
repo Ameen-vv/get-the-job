@@ -57,6 +57,7 @@ import {
   ALL_STATUSES,
   RECENCY_OPTIONS,
   SCORE_OPTIONS,
+  SORT_OPTIONS,
   PAGE_SIZE,
   buildFiltersQueryString,
   statusMatchesFilter,
@@ -456,6 +457,29 @@ export function JobsTable({
             </SelectTrigger>
             <SelectContent>
               {SCORE_OPTIONS.map((o) => (
+                <SelectItem key={o.value} value={o.value} className="text-xs">
+                  {o.label}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+
+          {/* Sort — the only sort control in card view; table view also has
+              clickable column headers that drive the same navigate() call. */}
+          <Select
+            value={`${filters.sort}-${filters.dir}`}
+            onValueChange={(v) => {
+              const option = SORT_OPTIONS.find((o) => o.value === v);
+              if (option) {
+                navigate({ sort: option.sort, dir: option.dir, page: 1 });
+              }
+            }}
+          >
+            <SelectTrigger className="w-40 h-9 text-xs">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              {SORT_OPTIONS.map((o) => (
                 <SelectItem key={o.value} value={o.value} className="text-xs">
                   {o.label}
                 </SelectItem>
